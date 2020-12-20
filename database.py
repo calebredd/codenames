@@ -2,106 +2,118 @@ import sqlite3
 from sqlite3 import Error 
 from random import randint
 
-def create_connection(db_file):
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-    except Error as e:
-        print(e)
-    return conn
+class dbClass():
+    def __init__(self, db_path=r"db.sqlite3", gridHeight=5): 
+        self.db_path = db_path
+        self.gridHeight = gridHeight 
+        self.wordCount = gridHeight * gridHeight
+        self.conn = None
 
-def select_all_words(conn):
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM dictionary')
+        self.create_connection()
 
-    rows = cur.fetchall();
-    print(rows)
-    
-    for row in rows:
-        print(row)
+    def create_connection(self):
+        self.close_connection()
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            print('----- Connection to SQLite Database made -----')
+        except Error as e:
+            print(e)
+        self.conn = conn
+        return 
 
-def insert_word(conn, word):
-    cur = conn.cursor()
-    sql = 'INSERT INTO dictionary (word) VALUES ("{}")'.format(word)
-    # print(sql)
-    cur.execute(sql)
-    conn.commit()
-    return
+    def close_connection(self):
+        if self.conn is not None:
+            self.conn.close()
+            self.conn = None
+            print('----- Connection to SQLite Database terminated -----')
 
-def get_room(conn, room_code):
-    cur = conn.cursor()
-    cur.execute('SELECT room_code, word_list FROM rooms WHERE room_code = {}').format(room_code)
+    def select_all_words(self):
+        cur = self.conn.cursor()
+        cur.execute('SELECT * FROM dictionary')
 
-    rows = cur.fetchall()
+        rows = cur.fetchall();
+        print(rows)
+        
+        for row in rows:
+            print(row)
 
-    if len(rows) > 0:
-        return rows[0]
-    else:
+    def insert_word(self, word):
+        cur = self.conn.cursor()
+        sql = 'INSERT INTO dictionary (word) VALUES ("{}")'.format(word)
+        # print(sql)
+        cur.execute(sql)
+        self.conn.commit()
         return
 
-def create_room(conn):
-    cur = conn.cursor()
-    
-    randomList = generateList(conn)
+    def get_room(self, room_code):
+        cur = self.conn.cursor()
+        cur.execute('SELECT * FROM rooms WHERE room_code = {}'.format(room_code))
 
+        row = cur.fetchone()
+        description = []
+        for name in cur.description:
+            description.append(name[0])
 
-    sql = "INSERT INTO rooms (word_list) VALUES ('{}')".format(randomList)
+        if len(row) > 0:
+            room =  {}
+            for i in range(len(description)):
+               room[description[i]] = row[i]
+            return room
+        else:
+            return
 
-    # data = object()
-    # data.word_list = word_list
-    
-    # cur.execute(sql, data)
-    # print(sql)
-    cur.execute(sql)
-    conn.commit()
-    cur.execute('SELECT room_code, word_list FROM rooms ORDER BY room_code DESC LIMIT 1')
-    rows = cur.fetchall()
-    if len(rows) > 0:
-        return rows[0]
-    else:
-        return
+    def create_room(self):
+        cur = self.conn.cursor()
+        
+        randomList = self.generateList()
+        redList = randomList[:9]
+        blueList = randomList[9:17]
+        assassinList = randomList[17:20]
+        # print('Reds: ',redList)
+        # print('Blues: ',blueList)
+        # print('Assassins: ',assassinList)
+        redList = ','.join(redList)
+        blueList = ','.join(blueList)
+        assassinList = ','.join(assassinList)
 
-def generateList(conn):
+        sql = "INSERT INTO rooms (red_ids, blue_ids, assassin_ids) VALUES ('{}', '{}', '{}')".format(redList, blueList, assassinList)
 
-    cur = conn.cursor()
-    cur.execute('SELECT COUNT(*) AS total FROM dictionary')
-    total = cur.fetchall();
-    total = int(total[0][0])
-    # print('Total: ',total)
-    count = 0
-    wordList = []
-    while count < 25:
-        id = randint(0, total)
-        if(id not in wordList):
-            wordList.append(str(id))
-            count+=1
-    wordList = ",".join(wordList);
-    # print('wordList', wordList)
-    sql = "SELECT * FROM dictionary WHERE id IN ({})".format(wordList)
-    # print(sql)
-    cur.execute(sql)
+        # data = object()
+        # data.word_list = word_list
+        # cur.execute(sql, data)
+        # print(sql)
 
-    rows = cur.fetchall();
-    # print(rows)
-    wordStr = []
-    for row in rows:
-        wordStr.append(row[1])
-    wordStr = ','.join(wordStr)
-    # print('wordStr', wordStr)
-    return wordStr
+        cur.execute(sql)
+        self.conn.commit()
+        newId = cur.lastrowid
 
+        return self.get_room(newId)
 
-def main():
-    database = r"db.sqlite3"
+    def generateList(self):
 
-    # create a database connection
-    conn = create_connection(database)
-    with conn:
-        return conn
+        cur = self.conn.cursor()
+        cur.execute('SELECT COUNT(*) AS total FROM dictionary')
+        total = cur.fetchone();
+        total = int(total[0])
+        # print('Total: ',total)
+        count = 0
+        wordIdList = []
+        while count < 25:
+            id = randint(0, total)
+            if(id not in wordIdList):
+                wordIdList.append(str(id))
+                count+=1
+        # print('wordIdList', wordIdList)
+
+        return wordIdList
+
 
 
 if __name__ == '__main__':
-    conn = main()
-    # select_all_words(conn)
-    print(create_room(conn))
+    newConnection = dbClass()
+    room = newConnection.create_room()
+    for column in room:
+        print(column, room[column])
+    newConnection.close_connection()
 
