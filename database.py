@@ -1,5 +1,6 @@
 import sqlite3
 from sqlite3 import Error 
+from random import randint
 
 def create_connection(db_file):
     conn = None
@@ -38,18 +39,57 @@ def get_room(conn, room_code):
     else:
         return
 
-def create_room(conn, room_code, word_list):
+def create_room(conn):
     cur = conn.cursor()
-    sql = 'INSERT INTO rooms (room_code, word_list) VALUES (?,?)'
+    
+    randomList = generateList(conn)
 
-    data = object()
-    data.room_code = room_code
-    data.word_list = word_list
+
+    sql = "INSERT INTO rooms (word_list) VALUES ('{}')".format(randomList)
+
+    # data = object()
+    # data.word_list = word_list
     
-    cur.execute(sql, data)
+    # cur.execute(sql, data)
+    # print(sql)
+    cur.execute(sql)
     conn.commit()
-    
-    return get_room(conn, room_code)
+    cur.execute('SELECT room_code, word_list FROM rooms ORDER BY room_code DESC LIMIT 1')
+    rows = cur.fetchall()
+    if len(rows) > 0:
+        return rows[0]
+    else:
+        return
+
+def generateList(conn):
+
+    cur = conn.cursor()
+    cur.execute('SELECT COUNT(*) AS total FROM dictionary')
+    total = cur.fetchall();
+    total = int(total[0][0])
+    # print('Total: ',total)
+    count = 0
+    wordList = []
+    while count < 25:
+        id = randint(0, total)
+        if(id not in wordList):
+            wordList.append(str(id))
+            count+=1
+    wordList = ",".join(wordList);
+    # print('wordList', wordList)
+    sql = "SELECT * FROM dictionary WHERE id IN ({})".format(wordList)
+    # print(sql)
+    cur.execute(sql)
+
+    rows = cur.fetchall();
+    # print(rows)
+    wordStr = []
+    for row in rows:
+        wordStr.append(row[1])
+    wordStr = ','.join(wordStr)
+    # print('wordStr', wordStr)
+    return wordStr
+
 
 def main():
     database = r"db.sqlite3"
@@ -62,4 +102,6 @@ def main():
 
 if __name__ == '__main__':
     conn = main()
-    select_all_words(conn)
+    # select_all_words(conn)
+    print(create_room(conn))
+
