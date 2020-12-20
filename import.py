@@ -7,6 +7,6 @@
 
 # conn = database.main()
 # for row in csvReader:
-    # # print(row)
-    # database.insert_word(conn, row[0])
+#     # print(row)
+#     database.insert_word(conn, row[0])
 # database.select_all_words(conn)
