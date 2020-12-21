@@ -1,12 +1,12 @@
-# # Uncomment code below to import csv list of words into sqlite database
+# # Uncomment code below to import csv list of words into sqlite database 
 # from csv import reader
-# import database
+# from database import dbClass 
 
 # file1 = open('nouns.csv', 'r')
 # csvReader = reader(file1)
 
-# conn = database.main()
+# database = dbClass()
 # for row in csvReader:
 #     # print(row)
-#     database.insert_word(conn, row[0])
-# database.select_all_words(conn)
+#     database.insert_word(row[0])
+# database.select_all_words()
